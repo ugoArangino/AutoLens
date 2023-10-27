@@ -51,7 +51,7 @@ public struct AutoLens: MemberMacro {
         guard
             let binding = lensVariable.bindings.first,
             let variableName = binding.pattern.as(IdentifierPatternSyntax.self)?.identifier,
-            let baseType = binding.typeAnnotation?.type.as(IdentifierTypeSyntax.self)
+            let baseType = binding.typeAnnotation?.type
         else {
             return nil
         }
@@ -77,7 +77,7 @@ public struct AutoLens: MemberMacro {
                                     trailingComma: .commaToken()
                                 ),
                                 GenericArgumentSyntax(
-                                    argument: IdentifierTypeSyntax(name: baseType.name)
+                                    argument: baseType
                                 ),
                             ],
                             rightAngle: .rightAngleToken()
