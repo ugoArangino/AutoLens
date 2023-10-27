@@ -2,45 +2,73 @@ import SwiftSyntaxMacros
 import SwiftSyntaxMacrosTestSupport
 import XCTest
 
-// Macro implementations build for the host, so the corresponding module is not available when cross-compiling. Cross-compiled tests may still make use of the macro itself in end-to-end tests.
-#if canImport(AutoLensMacros)
 import AutoLensMacros
 
 let testMacros: [String: Macro.Type] = [
-    "stringify": StringifyMacro.self,
+    "AutoLens": AutoLens.self,
 ]
-#endif
 
 final class AutoLensTests: XCTestCase {
     func testMacro() throws {
-        #if canImport(AutoLensMacros)
         assertMacroExpansion(
             """
-            #stringify(a + b)
+            @AutoLens
+            struct LensExample {
+                static var v1 = 0
+                var v2: Any { 0 }
+                private let v3: Any
+                public let v4: Any
+                var v5: Int
+                private(set) var v6: Any
+            }
             """,
             expandedSource: """
-            (a + b, "a + b")
+            struct LensExample {
+                static var v1 = 0
+                var v2: Any { 0 }
+                private let v3: Any
+                public let v4: Any
+                var v5: Int
+                private(set) var v6: Any
+
+                private static let v3Lens = Lens<LensExample, Any>(
+                    get: {
+                        $0.v3
+                    },
+                    set: { v3, orginal in
+                        LensExample(v3: v3, v4: orginal.v4, v5: orginal.v5, v6: orginal.v6)
+                    }
+                    )
+
+                public static let v4Lens = Lens<LensExample, Any>(
+                    get: {
+                        $0.v4
+                    },
+                    set: { v4, orginal in
+                        LensExample(v3: orginal.v3, v4: v4, v5: orginal.v5, v6: orginal.v6)
+                    }
+                    )
+
+                internal static let v5Lens = Lens<LensExample, Int>(
+                    get: {
+                        $0.v5
+                    },
+                    set: { v5, orginal in
+                        LensExample(v3: orginal.v3, v4: orginal.v4, v5: v5, v6: orginal.v6)
+                    }
+                    )
+
+                private static let v6Lens = Lens<LensExample, Any>(
+                    get: {
+                        $0.v6
+                    },
+                    set: { v6, orginal in
+                        LensExample(v3: orginal.v3, v4: orginal.v4, v5: orginal.v5, v6: v6)
+                    }
+                    )
+            }
             """,
             macros: testMacros
         )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
-    }
-
-    func testMacroWithStringLiteral() throws {
-        #if canImport(AutoLensMacros)
-        assertMacroExpansion(
-            #"""
-            #stringify("Hello, \(name)")
-            """#,
-            expandedSource: #"""
-            ("Hello, \(name)", #""Hello, \(name)""#)
-            """#,
-            macros: testMacros
-        )
-        #else
-        throw XCTSkip("macros are only supported when running tests for the host platform")
-        #endif
     }
 }
